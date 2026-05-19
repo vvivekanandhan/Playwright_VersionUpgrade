@@ -168,10 +168,11 @@ export class VelosCalendarPage {
   /* ── Add Calendar Actions ───────────────────────────── */
 
   /** Fill the Add Calendar form fields */
-  async fillCalendarForm(name: string, description: string, calType: string, duration: string, durationUnit: string) {
-    await this.calendarNameInput.first().fill(name);
+  async fillDefineCalendar(calendarData: { calendarName: string; description: string; calType: string; duration: string; durationUnit: string }) {
+    const { calendarName, description, calType, duration, durationUnit } = calendarData;
+    await this.calendarNameInput.first().fill(calendarName);
     await this.calendarDescriptionInput.fill(description);
-    await this.calendarTypeDropdown.selectOption(calType);
+    await this.calendarTypeDropdown.selectOption({ index: 1 });
     await this.durationNumberInput.fill(duration);
     await this.durationUnitDropdown.selectOption(durationUnit);
     await this.helper.fillESignAndSubmit();
@@ -179,7 +180,7 @@ export class VelosCalendarPage {
   }
 
   /** Click Select Events and search for events in the popup, selecting first N rows */
-  async selectEventsFromPopup(rowCount: number) {
+  async selectEventsFromPopup() {
     await this.selectEventsLink.click();
     const page1Promise = this.page.waitForEvent('popup');
     await this.searchButton.click();
@@ -226,8 +227,11 @@ export class VelosCalendarPage {
     await this.page.waitForLoadState('domcontentloaded');
     await this.rowCountInput.click();
     await this.page.keyboard.type('1', { delay: 100 });
+    await this.page.waitForTimeout(500); // Wait for the new row to be added to the DOM
+    await this.page.waitForTimeout(500); // Wait for the new row to be added to the DOM
+    await this.page.waitForTimeout(500); // Wait for the new row to be added to the DOM
+        await this.page.waitForTimeout(1000); // Wait for the new row to be added to the DOM
     await this.addRowButton.click();
-    await this.page.waitForTimeout(1000); // Wait for the new row to be added to the DOM
     // Click on the visit name cell for the first row
     const visitNameCell = this.page.locator('.yui-dt-col-visitName > .yui-dt-liner').first();
     await visitNameCell.click();
@@ -284,8 +288,9 @@ export class VelosCalendarPage {
     const { name, interval, intervalUnit = 'Days', insertAfter = 'First Visit' } = visitData;
     await this.rowCountInput.click();
     await this.page.keyboard.type('1', { delay: 100 });
-    await this.addRowButton.click();
     await this.page.waitForTimeout(500); // Wait for the new row to be added to the DOM
+    await this.page.waitForTimeout(500); // Wait for the new row to be added to the DOM
+    await this.addRowButton.click();
 
     // Click on the visit name cell for the first row
     const visitNameCell = this.page.locator('.yui-dt-col-visitName > .yui-dt-liner').first();
@@ -335,6 +340,9 @@ export class VelosCalendarPage {
     const { name } = visitData;
     await this.rowCountInput.click();
     await this.page.keyboard.type('1', { delay: 100 });
+    await this.page.waitForTimeout(500); // Wait for the new row to be added to the DOM
+    await this.page.waitForTimeout(500); // Wait for the new row to be added to the DOM
+    await this.page.waitForTimeout(500); // Wait for the new row to be added to the DOM
     await this.addRowButton.click();
     await this.page.waitForTimeout(500); // Wait for the new row to be added to the DOM
     // Click on the visit name cell
@@ -645,7 +653,6 @@ export class VelosCalendarPage {
     portal: VelosPortalPage,
   ) {
     await this.searchCalendar(calendarName);
-await this.page.pause();
     const deleteIcon = this.page.getByRole('link', { name: 'Delete' }).first();
       await deleteIcon.click();
       await this.helper.fillESignAndSubmit();

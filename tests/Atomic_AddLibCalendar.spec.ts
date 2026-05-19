@@ -20,13 +20,7 @@ test.only('Create a new Lib Calendar and verify', async ({ login, nav, page, stu
   portalPage = new VelosPortalPage(page);
   createdCalendarName = calendarData.calendarName;
   await nav.navigateTo("Libraries", "Calendars", "Add Calendar");
-  await calendarPage.fillCalendarForm(
-    calendarData.calendarName,
-    calendarData.description,
-    calendarData.calType,
-    calendarData.duration,
-    calendarData.durationUnit
-  );
+  await calendarPage.fillCalendarForm(calendarData);
   await calendarPage.selectEventsFromPopup(calendarData.eventRowCount);
    await calendarPage.manageVisitsLink.click();
   // Create Fixed Time Point visit
@@ -93,14 +87,14 @@ test('test', async ({ page }) => {
 });
 
 // Runs after each test regardless of pass or fail
-test.afterEach(async () => {
-  if (createdCalendarName && sharedPage && calendarPage && portalPage) {
-    try {
-      await sharedNav.navigateTo("Libraries", "Calendars", "Search");
-      await calendarPage.deleteCalendar(createdCalendarName, process.env.ESIGN!, portalPage);
-      console.log(`✓ Cleanup: Calendar "${createdCalendarName}" deleted successfully`);
-    } catch (error) {
-      console.log(`✗ Cleanup failed: ${error}`);
-    }
-  }
-});
+// test.afterEach(async () => {
+//   if (createdCalendarName && sharedPage && calendarPage && portalPage) {
+//     try {
+//       await sharedNav.navigateTo("Libraries", "Calendars", "Search");
+//       await calendarPage.deleteCalendar(createdCalendarName, process.env.ESIGN!, portalPage);
+//       console.log(`✓ Cleanup: Calendar "${createdCalendarName}" deleted successfully`);
+//     } catch (error) {
+//       console.log(`✗ Cleanup failed: ${error}`);
+//     }
+//   }
+// });

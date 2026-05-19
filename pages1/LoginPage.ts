@@ -15,7 +15,7 @@ export class LoginPage {
   constructor(page: Page) {
     this.page = page;
     this.usernameInput = page.getByRole('textbox', { name: 'Username' });
-    this.passwordInput = page.getByRole('textbox', { name: 'Enter your password' });
+    this.passwordInput = page.locator('#password')
     this.loginButton = page.getByRole('button', { name: 'log in arrow_forward' });
     this.okButton = page.getByRole('button', { name: 'Ok' });
   }
@@ -39,5 +39,6 @@ export class LoginPage {
     if (await loggedInText.isVisible({ timeout: 5000 }).catch(() => false)) {
       await this.okButton.click();
     }
+    await this.page.locator('#homePage').last().click();
   }
 }

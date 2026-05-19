@@ -7,7 +7,6 @@ test('Create a new patient and verify via search', async ({ login, nav, page, pa
   
   // Create patient
   await nav.navigateTo("Manage", "Patients", "New");
-  await page.pause(); // Debugging pause to inspect the page after login  
 
   await patientDetails.createPatient(uniquePatientId);
 

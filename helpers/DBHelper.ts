@@ -118,6 +118,20 @@ export class DBHelper {
     };
   }
 
+  /**
+   * Get the codelst_desc value for enrolled patient status
+   * Query: SELECT codelst_desc FROM er_codelst WHERE codelst_subtyp = 'enrolled'
+   */
+  async getEnrolledPatientStatus(): Promise<string> {
+    const rows = await this.query<{ CODELST_DESC: string }>(
+      `SELECT codelst_desc FROM er_codelst WHERE codelst_subtyp = 'enrolled'`
+    );
+    if (!rows.length) {
+      throw new Error('No enrolled patient status found in er_codelst');
+    }
+    return rows[0].CODELST_DESC;
+  }
+
   /** Close the connection gracefully. Call this in `afterAll` / `afterEach`. */
   async close(): Promise<void> {
     if (this.connection) {

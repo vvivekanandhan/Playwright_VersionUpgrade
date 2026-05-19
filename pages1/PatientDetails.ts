@@ -28,9 +28,9 @@ export class PatientDetails {
     this.patientId = page.locator('#patid');
     this.patientFirstName = page.locator('#patfname');
     this.patientLastName = page.locator('#patlname');
-    this.patientGender = page.getByLabel('patgender');
-    this.patientEthnicity = page.getByLabel('patethnicity');
-    this.patientRace = page.getByLabel('patrace');
+    this.patientGender = page.locator('#patgender');
+    this.patientEthnicity = page.locator('#patethnicity');
+    this.patientRace = page.locator('#patrace');
     this.selectEthnicityLink = page.getByRole('link', { name: 'Select Ethnicity' });
     this.patientFacilityId = page.locator('input[name="patFacilityID"]');
     this.patientDob = page.locator('#patdob');
@@ -42,14 +42,30 @@ export class PatientDetails {
   }
 
   /**
+   * Generate a unique first name using a prefix + timestamp.
+   * @param prefix - Prefix for the first name (default: 'First_')
+   */
+  static generateUniqueFirstName(prefix = 'First_'): string {
+    return `${prefix}${Date.now()}`;
+  }
+
+  /**
+   * Generate a unique last name using a prefix + timestamp.
+   * @param prefix - Prefix for the last name (default: 'Last_')
+   */
+  static generateUniqueLastName(prefix = 'Last_'): string {
+    return `${prefix}${Date.now()}`;
+  }
+
+  /**
    * Create a new patient with all details.
    * @param patientId - The patient identifier to use
    * @param eSignValue - E-signature value (default: '1111')
    */
   async createPatient(patientId: string, eSignValue: string = process.env.ESIGN || '1234') {
     await this.patientId.fill(patientId);
-    await this.patientFirstName.fill('Patient_Test_First');
-    await this.patientLastName.fill('Patient_Last Name');
+    await this.patientFirstName.fill(PatientDetails.generateUniqueFirstName());
+    await this.patientLastName.fill(PatientDetails.generateUniqueLastName());
     await this.patientDob.click();
     await this.todayButton.click();
 
@@ -72,6 +88,8 @@ export class PatientDetails {
     await this.eSign.focus();
     await this.eSign.fill(eSignValue);
     await this.submitButton.click();
+        await popup.waitForLoadState();
+
   }
 
   /**

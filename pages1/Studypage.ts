@@ -129,17 +129,18 @@ export class StudyPage {
       // Get active enrolling study status from database
       const { pkCodelst, statusTypePk } = await db.getActiveEnrollingStudyStatusCode();
       console.log(`[DB Values] pkCodelst: ${pkCodelst}, statusTypePk: ${statusTypePk}`);
-      await this.page.pause (); // Debugging pause to inspect the page before adding enrolled status
+      
       // Navigate to add new status
       await this.addNewStatusLink.click();
-      
       // Select study status type and protocol status (by value attribute)
       await this.page.locator('#studyStatusType').selectOption({ value: statusTypePk.toString() });
+            await this.page.waitForTimeout(1000); // Wait for any dependent dropdowns or UI updates after selecting status type
+
       await this.page.locator('#protocolStatus').selectOption({ value: pkCodelst.toString() });
       
       // Click start date and select current date
       await this.page.locator('input[name="startDate"]').click();
-      await this.page.getByRole('button', { name: 'Current' }).click();
+      await this.page.getByRole('button', { name: 'Today' }).click();
       
       // Submit with eSign
       await this.helper.fillESignAndSubmit();
@@ -160,7 +161,7 @@ export class StudyPage {
     await popup.waitForLoadState();
     await popup.locator("//input[@name='searchName']").fill(searchTerm);
     await popup.getByRole('button', { name: 'Search' }).click();
-    await popup.getByRole('link', { name: 'Select' }).first().click();
+    await popup.getByRole('link', { name: 'Select', exact: true }).first().click();
   }
 
   /**
@@ -179,8 +180,6 @@ export class StudyPage {
 await this.submitButton.click(); 
 await this.helper.fillESignAndSubmit(eSignValue);
 await this.page.getByRole('link', { name: calendarName }).click();
-await this.page.pause(); // Debugging pause to inspect the page after login
-
 }
 
   /**
@@ -195,5 +194,91 @@ await this.page.pause(); // Debugging pause to inspect the page after login
     await this.moveEventCheckbox.check();
     await this.selectAnOptionCell.click();
     await this.moveEventCheckbox.press('ArrowDown');
+  }
+
+  /**
+   * Change calendar status to Active (or specified status) and submit with eSign.
+   * @param calendarName - The calendar link name to navigate to
+   * @param status - Calendar status option value (default: 'A' for Active)
+   */
+  async changeCalendarStatus(calendarName: string, status: string) {
+    await this.page.getByRole('link', { name: calendarName }).click();
+    await this.page.getByRole('link', { name: 'Define the Calendar ' }).click();
+    await this.calendarStatus.selectOption(status);
+    await this.page.getByRole('cell', { name: 'Move this event only.' }).getByRole('checkbox').check();
+    await this.helper.fillESignAndSubmit();
+    await this.page.getByRole('link', { name: 'Back to Calendars' }).click();
+  }
+
+  /**
+   * Add an existing patient to a study with enrolled status.
+   * @param studyNumber - Study number to search for
+   * @param patientId - Patient ID to search and select
+   */
+  async addPatientToStudy(studyNumber: string, patientId: string) {
+    const db = new DBHelper();
+    try {
+      // Search for study in header search box
+      await this.page.getByPlaceholder('Study #, Title or Keyword').fill(studyNumber);
+      await this.page.keyboard.press('Enter');
+      // Navigate to Patient Management - Enrolled
+      await this.page.getByRole('link', { name: 'Patient Management - Enrolled' }).click();
+
+      // Click SELECT AN EXISTING PATIENT button
+      await this.page.getByRole('link', { name: 'SELECT AN EXISTING PATIENT' }).click();
+
+      // Search for patient
+      await this.page.locator('input[name="patCode"]').fill(patientId);
+      await this.page.getByRole('button', { name: 'Search' }).click();
+
+      // Select patient from results (first link with patient ID)
+      const popupPromise = this.page.waitForEvent('popup');
+      await this.page.getByRole('link', { name: 'Select', exact: true }).first().click();
+      const popup = await popupPromise;
+      await popup.waitForLoadState();
+      // Get enrolled patient status from database
+      const enrolledStatus = await db.getEnrolledPatientStatus();
+      console.log(`[DB Value] Enrolled Status: ${enrolledStatus}`);
+
+      // Set patient status - assuming there's a dropdown or input for patient status
+      await popup.locator('select[name="patstatus"]').selectOption(enrolledStatus);
+      await popup.waitForLoadState('domcontentloaded');
+      await popup.locator('input[name="patStudyId"]').fill(patientId); // Fill patient study ID with unique value
+      await popup.locator('input[name="StatusDate"]').click();
+      await popup.getByRole('button', { name: 'Today' }).click();
+      // Submit with eSign on popup
+      const popupHelper = new VelosHelper(popup);
+      await popupHelper.fillESignAndSubmit();
+          await this.page.waitForLoadState('domcontentloaded');
+
+    } finally {
+      await db.close();
+    }
+  }
+
+  /**
+   * Create patient schedule by selecting calendar and setting start date.
+   * @param calendarName - Calendar name to select from dropdown
+   */
+  async createPatientSchedule(calendarName: string) {
+    // Click Schedule tab
+    await this.page.getByRole('link', { name: 'Schedule', exact: true }).click({ force: true });
+    await this.page.waitForLoadState('domcontentloaded');
+    // Wait for popup and click Edit Calendar/Date
+    const popupPromise = this.page.waitForEvent('popup');
+    await this.page.getByRole('link', { name: 'Edit Calendar/Date' }).click();
+    const popup = await popupPromise;
+    await popup.waitForLoadState();
+
+    // Select calendar from dropdown
+    await popup.locator('select[name="protocolId"]').click();
+    await popup.locator('select[name="protocolId"]').selectOption({ label: calendarName });
+
+    // Click start date input and select Today
+    await popup.locator('input[name="protStDate"]').click();
+    await popup.getByRole('button', { name: 'Today' }).click();
+    // Fill eSign and submit
+    const popupHelper = new VelosHelper(popup);
+    await popupHelper.fillESignAndSubmit();
   }
 }
