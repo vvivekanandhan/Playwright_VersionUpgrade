@@ -1,0 +1,9 @@
+{
+  "url": "https://dev-eresearch.wcgclinical.com/velos/jsp/ereslogin.jsp",
+  "username": "velosadmin",
+  "password": "velos123",
+  "eSign": "1111",
+  "patientIdPrefix": "PW_",
+    "searchAction": "Search"
+  }
+

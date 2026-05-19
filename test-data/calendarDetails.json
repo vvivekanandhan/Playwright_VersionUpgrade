@@ -1,0 +1,26 @@
+{
+  "calendarNamePrefix": "Pet Calendar_",
+  "description": "pet calendar name",
+  "calType": "149",
+  "duration": "10",
+  "durationUnit": "year",
+  "eSign": "1234",
+  "eventRowCount": 3,
+  "visitRowCount": "01",
+  "visits": ["v1", "v2", "v3"],
+  "fixedTimePointVisit": {
+    "name": "v1",
+    "months": "1",
+    "weeks": "1",
+    "days": "1"
+  },
+  "dependentTimePointVisit": {
+    "name": "v2",
+    "interval": "2",
+    "intervalUnit": "Weeks",
+    "insertAfter": "First Visit"
+  },
+  "noTimePointVisit": {
+    "name": "v3"
+  }
+}

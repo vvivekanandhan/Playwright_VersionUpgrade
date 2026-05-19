@@ -1,0 +1,62 @@
+﻿Event,Library,Event_Category,Coverage_Notes,F|Visit 1|M1,F|Visit 2|M3W2,D|Visit3|M6|Visit 2,F|Visit 4|M9,N|V12
+Baseline Evaluation,Default,Clinical Visits,"CC: Abdominal pain. HPI: 2-day history, sharp pain in RLQ, worsens with movement. PE: Tenderness and rebound tenderness in RLQ. Assessment: Suspected appendicitis.","X|NA|stdcare_cost:100,res_cost:800|445566 |Determined to be XXX Billing code based on Line3 of Protocol A",X||res_cost:250|,X|||776655|,,X
+PSA,Default,Clinical Visits,"CC: Shortness of breath.
+HPI: Gradual onset, worsens with exertion.
+PE: Decreased breath sounds at bases, no wheezing.
+Assessment: Rule out pneumonia.
+Plan: Chest X-ray, start antibiotics.",X,X|NA||,X||cost_desc_11:200|,X,X
+Collect/Review 3-day food diaries,Default,Clinical Visits,"CC: Headache.
+HPI: 1-week duration, frontal location, throbbing.
+PE: No focal neuro deficits, photophobia.
+Assessment: Tension headache.
+Plan: Recommend stress management, follow up in 2 weeks.",X|||94564|,X,,,
+FFQ,Default,Clinical Visits,"CC: Rash on arms.
+HPI: Pruritic rash, spreading over 2 days.
+PE: Erythematous papules on forearms.
+Assessment: Allergic contact dermatitis.
+Plan: Prescribe topical corticosteroid, avoid irritants.",X,,,,X
+MD Exam,Default,Clinical Visits,"CC: Fever and cough.
+HPI: 3-day history, productive cough with yellow sputum.
+PE: Tachypnea, crackles in bilateral lower lobes.
+Assessment: Likely pneumonia.
+Plan: Chest X-ray, start antibiotics.",X,"X|NA|stdcare_cost:300,soc:400|",X,X,X
+Vital Signs,Default,Clinical Visits,"CC: Abnormal uterine bleeding.
+HPI: Irregular menstrual cycles, heavy bleeding last 2 weeks.
+PE: Uterus enlarged, no adnexal masses.
+Assessment: Dysfunctional uterine bleeding.
+Plan: Order pelvic ultrasound, consider hormonal therapy.",X|NA||84756|,X,"X||cost_desc_10:500,soc:600|3345,564738,4738|Determined to be XXX Billing code based on Line3 of Protocol Amendment A",X,X
+Dietary Counseling,Default,Clinical Visits,"CC: Dizziness and lightheadedness.
+HPI: Episodes of vertigo, worsens on head movement.
+PE: Positive Dix-Hallpike maneuver.
+Assessment: Benign paroxysmal positional vertigo.
+Plan: Epley maneuver, follow up in 2 weeks.",X,,,,
+Give Compliance Calendar/Symptom Sheet,Default,Clinical Visits,"CC: Chest pain.
+HPI: Sharp chest pain, worsens with deep breaths.
+PE: Normal heart sounds, no murmur.
+Assessment: Rule out costochondritis.
+Plan: EKG, consider NSAIDs for pain.","X|R|stdcare_cost:700,res_cost:800|",,,,
+Supplements/MVI dispensed,Default,Clinical Visits,"CC: Joint pain.
+HPI: Swelling and pain in knees for 2 weeks.
+PE: Warmth and effusion in bilateral knees.
+Assessment: Likely inflammatory arthritis.
+Plan: Order labs (ESR, CRP), refer to rheumatology.",X,,,,
+TRUS- Biopsy,Default,Clinical Visits,"CC: Nausea and vomiting.
+HPI: Persistent nausea, multiple episodes of vomiting.
+PE: Mild dehydration, no abdominal tenderness.
+Assessment: Gastroenteritis.
+Plan: IV fluids, antiemetics, discharge home.",X,X,,,X|RS||9943
+Review Compliance Calendar/ Symptom Sheet,Default,Clinical Visits,"CC: Insomnia.
+HPI: Difficulty falling asleep, waking up frequently.
+PE: No signs of depression or anxiety.
+Assessment: Primary insomnia.
+Plan: Sleep hygiene education, consider CBT-I.",,"X|NB|cost_desc_10:900,stdcare_cost:1000|3345,564738|Determined to be XXX Billing code based on Line3 of Protocol Amendment A",,,
+Enroll in PCSF,Default,Clinical Visits,"CC: Fatigue.
+HPI: Generalized weakness, poor concentration.
+PE: No lymphadenopathy or organomegaly.
+Assessment: Rule out anemia.
+Plan: CBC, iron studies, thyroid function tests.",,X,,,
+Collect pill bottles/Pill Count-Pharmacy,Default,Clinical Visits,"CC: Back pain.
+HPI: Chronic low back pain, worsens with prolonged sitting.
+PE: Decreased lumbar range of motion.
+Assessment: Mechanical back pain.
+Plan: Physical therapy referral, consider imaging if no improvement.","X|M||9584,3454,23453|",X,,X,
