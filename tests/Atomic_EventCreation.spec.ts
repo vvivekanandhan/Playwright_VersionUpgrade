@@ -38,7 +38,6 @@ test('Add Event Category and Create Events', async () => {
   await sharedNav.navigateTo("Libraries", "Events", "Add Category");
 
   await sharedPage.waitForLoadState('domcontentloaded');
-  await sharedPage.pause();
   // Select library type and fill category name
   await sharedPage.locator('select[name="cmbLibType"]').selectOption({ index: 1 });
   await sharedPage.locator('input[name="categoryName"]').fill(createdEventCategoryName);
@@ -51,7 +50,6 @@ test('Add Event Category and Create Events', async () => {
   // Step 2: Navigate to Search page and search for the created category
   await sharedNav.navigateTo("Libraries", "Events", "Search");
   await sharedPage.waitForLoadState('domcontentloaded');
-  await sharedPage.pause();
   await sharedPage.locator('select[name="cmbLibType"]').selectOption({ index: 0 });
   await sharedPage.waitForTimeout(500); // Wait for category dropdown to populate
   await sharedPage.locator('select[name="catId"]').selectOption({ label: createdEventCategoryName });

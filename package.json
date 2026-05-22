@@ -9,7 +9,9 @@
   "scripts": {},
   "devDependencies": {
     "@playwright/test": "^1.60.0",
-    "@types/node": "^25.5.2"
+    "@types/node": "^25.5.2",
+    "@types/pdfkit": "^0.17.6",
+    "pdfkit": "^0.18.0"
   },
   "dependencies": {
     "dotenv": "^17.4.2",
