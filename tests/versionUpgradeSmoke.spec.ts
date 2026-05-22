@@ -6,6 +6,7 @@ import { VelosPortalPage } from '../pages1/VelosPortalPage';
 import { VelosFieldPage } from '../pages1/VelosFieldPage';
 import { VelosHelper } from '../helpers/VelosHelper';
 import { type Page } from '@playwright/test';
+import eventLibraryData from '../test-data/calendarLibEvents.json';
 
 let studyPage: StudyPage;
 let calendarPage: VelosCalendarPage;
@@ -18,6 +19,7 @@ let createdPatientId: string;
 let createdCategoryName: string;
 let createdFormCategoryName: string;
 let createdFormName: string;
+let createdEventCategoryName: string;
 
 test.describe.configure({ mode: 'serial' });
 
@@ -147,7 +149,7 @@ test('Add Form Category and Create Form', async () => {
   // Step 2: Add Form
   await sharedNav.navigateTo("Libraries", "Forms", "Add Form");
   await sharedPage.waitForLoadState('domcontentloaded');
-  
+  await sharedPage.pause();
   // Fill form details
   await sharedPage.locator('input[name="txtName"]').fill(createdFormName);
   await sharedPage.locator('#formType').selectOption({ label: createdFormCategoryName });
@@ -186,14 +188,102 @@ test('Add Form Category and Create Form', async () => {
   await fieldsPopup.getByRole('img').first().click();
   // Select section for fields
   await fieldsPopup.locator('#section').selectOption('Section 1');
-    await sharedPage.pause  ();
 
   // Final submit
   await fieldsPopup.getByRole('button', { name: 'Submit' }).click();
   
-  await fieldsPopup.close().catch(() => {});
   
   console.log('Added fields to form');
+});
+
+test('Add Event Category and Create Events', async () => {
+  // Create unique event category name with timestamp
+  const timestamp = Date.now();
+  createdEventCategoryName = `EventCategory_${timestamp}`;
+  
+  // Step 1: Add Event Category
+  await sharedNav.navigateTo("Libraries", "Events", "Add Category");
+  await sharedPage.waitForLoadState('domcontentloaded');
+  
+  // Select library type and fill category name
+  await sharedPage.locator('select[name="cmbLibType"]').selectOption({ index: 1 });
+  await sharedPage.locator('input[name="categoryName"]').fill(createdEventCategoryName);
+  
+  // Fill eSign and submit
+  await sharedNav.fillESignAndSubmit();
+  
+  console.log(`Created event category: ${createdEventCategoryName}`);
+  
+  // Step 2: Navigate to Search page and search for the created category
+  await sharedNav.navigateTo("Libraries", "Events", "Search");
+  await sharedPage.waitForLoadState('domcontentloaded');
+  
+  await sharedPage.locator('select[name="cmbLibType"]').selectOption({ index: 0 });
+  await sharedPage.waitForTimeout(500); // Wait for category dropdown to populate
+  await sharedPage.locator('select[name="catId"]').selectOption({ label: createdEventCategoryName });
+  await sharedPage.getByRole('button', { name: 'Search' }).click();
+  await sharedPage.waitForLoadState('domcontentloaded');
+  
+  // Step 3: Create Multiple Events from JSON data
+  for (const eventData of eventLibraryData.events) {
+    const uniqueEventName = `${eventData.eventName}_${timestamp}`;
+    await sharedPage.locator('select[name="cmbLibType"]').selectOption({ index: 0 });
+    await sharedPage.waitForTimeout(500); 
+    await sharedPage.locator('select[name="catId"]').selectOption({ label: createdEventCategoryName });
+    await sharedPage.getByRole('button', { name: 'Search' }).click();
+    await sharedPage.waitForLoadState('domcontentloaded');
+    
+    await sharedPage.getByRole('link', { name: 'New Event', exact: true }).click(); 
+    // Fill event details
+    await sharedPage.locator('textarea[name="eventName"]').fill(uniqueEventName);
+    await sharedPage.locator('textarea[name="cptcode"]').fill(eventData.cptCode);
+    await sharedPage.locator('input[name="eventDuration"]').fill(eventData.duration);
+    await sharedPage.locator('select[name="eventDurDays"]').selectOption(eventData.durationUnit);
+    
+    // Fill eSign and submit
+    await sharedNav.fillESignAndSubmit();
+    
+    console.log(`Created event: ${uniqueEventName}`);
+    
+    // Step 4: Add Cost to Event
+    await sharedPage.getByRole('link', { name: 'Resource' }).click();
+    await sharedPage.getByRole('link', { name: 'Cost' }).click();
+    await sharedPage.getByRole('link', { name: 'Specify Cost' }).click();
+    await sharedPage.waitForLoadState('domcontentloaded');
+    
+    // Select cost type and fill amount
+    await sharedPage.getByRole('combobox').first().selectOption({ label: 'Research Cost' });
+    await sharedPage.getByRole('row', { name: 'Research Cost US Dollars' }).getByRole('textbox').fill(eventData.researchCost);
+    
+    // Fill eSign and submit
+    await sharedNav.fillESignAndSubmit();
+    
+    console.log(`Added cost $${eventData.researchCost} to event: ${uniqueEventName}`);
+    
+    // Step 5: Link Forms to Event
+    await sharedPage.getByRole('link', { name: 'Resource' }).click();
+    await sharedPage.getByRole('link', { name: 'CRF Details' }).click();
+    await sharedPage.waitForLoadState('domcontentloaded');
+    
+    const formsPopupPromise = sharedPage.waitForEvent('popup');
+    await sharedPage.getByRole('link', { name: 'Link Forms' }).click();
+    const formsPopup = await formsPopupPromise;
+    await formsPopup.waitForLoadState('domcontentloaded');
+    
+    // Select first form and submit
+    await formsPopup.getByRole('checkbox').first().check();
+    await formsPopup.getByRole('button', { name: 'Submit' }).click();
+    
+    await formsPopup.close().catch(() => {});
+    
+    console.log(`Linked forms to event: ${uniqueEventName}`);
+    
+    // Navigate back to event list to create next event
+    await sharedPage.getByRole('link', { name: 'Back' }).click();
+    await sharedPage.waitForLoadState('domcontentloaded');
+  }
+  
+  console.log(`Successfully created ${eventLibraryData.events.length} events`);
 });
 
 test('Add Library Calendar', async ({ studyData, calendarData }) => {
@@ -204,7 +294,7 @@ test('Add Library Calendar', async ({ studyData, calendarData }) => {
   
   await sharedNav.navigateTo("Libraries", "Calendars", "Add Calendar");
   await calendarPage.fillDefineCalendar(calendarData);
-  await calendarPage.selectEventsFromPopup();
+  await calendarPage.selectEventsFromPopup(createdEventCategoryName);
   await calendarPage.manageVisitsLink.click();
   
   // Create Fixed Time Point visit

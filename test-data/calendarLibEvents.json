@@ -1,0 +1,32 @@
+{
+  "events": [
+    {
+      "eventName": "Blood Draw",
+      "cptCode": "36415",
+      "duration": "15",
+      "durationUnit": "Days",
+      "researchCost": "50"
+    },
+    {
+      "eventName": "Physical Exam",
+      "cptCode": "99213",
+      "duration": "30",
+      "durationUnit": "Days",
+      "researchCost": "150"
+    },
+    {
+      "eventName": "MRI Scan",
+      "cptCode": "70551",
+      "duration": "2",
+      "durationUnit": "Days",
+      "researchCost": "1200"
+    },
+    {
+      "eventName": "Lab Analysis",
+      "cptCode": "80053",
+      "duration": "1",
+      "durationUnit": "Days",
+      "researchCost": "300"
+    }
+  ]
+}

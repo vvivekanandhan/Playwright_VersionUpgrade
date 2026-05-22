@@ -180,12 +180,20 @@ export class VelosCalendarPage {
   }
 
   /** Click Select Events and search for events in the popup, selecting first N rows */
-  async selectEventsFromPopup() {
+  async selectEventsFromPopup(eventCategoryName?: string) {
     await this.selectEventsLink.click();
     const page1Promise = this.page.waitForEvent('popup');
     await this.searchButton.click();
     const popup = await page1Promise;
-    await popup.locator('select[name="cmbLibType"]').selectOption({ index: 1 });
+    
+    // Select event category - use label if provided, otherwise use index 1
+    if (eventCategoryName) {
+await popup.locator('select[name="cmbLibType"]').selectOption({ index: 0});
+  await popup.locator('select[name="catId"]').selectOption({ label: eventCategoryName });
+      } else {
+      await popup.locator('select[name="cmbLibType"]').selectOption({ index: 1 });
+    }
+    
     await popup.getByRole('button', { name: 'Search' }).first().click();
     await popup.waitForLoadState('domcontentloaded');
     await popup.getByRole('checkbox').first().check();
