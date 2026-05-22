@@ -289,7 +289,7 @@ export class VelosCalendarPage {
     await this.rowCountInput.click();
     await this.page.keyboard.type('1', { delay: 100 });
     await this.page.waitForTimeout(500); // Wait for the new row to be added to the DOM
-    await this.page.waitForTimeout(500); // Wait for the new row to be added to the DOM
+    await this.page.waitForTimeout(500); // Wait for the  new row to be added to the DOM
     await this.addRowButton.click();
 
     // Click on the visit name cell for the first row
