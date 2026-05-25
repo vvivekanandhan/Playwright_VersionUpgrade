@@ -149,7 +149,6 @@ test('Add Form Category and Create Form', async () => {
   // Step 2: Add Form
   await sharedNav.navigateTo("Libraries", "Forms", "Add Form");
   await sharedPage.waitForLoadState('domcontentloaded');
-  await sharedPage.pause();
   // Fill form details
   await sharedPage.locator('input[name="txtName"]').fill(createdFormName);
   await sharedPage.locator('#formType').selectOption({ label: createdFormCategoryName });
