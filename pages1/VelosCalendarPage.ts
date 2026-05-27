@@ -205,6 +205,14 @@ await popup.locator('select[name="cmbLibType"]').selectOption({ index: 0});
     return popup;
   }
 
+  /** Click Manage Visits link and refresh the page */
+  async clickManageVisitsAndRefresh() {
+    await this.manageVisitsLink.click();
+    await this.page.waitForLoadState('domcontentloaded');
+    await this.page.reload();
+    await this.page.waitForLoadState('domcontentloaded');
+  }
+
   /** Navigate to Manage Visits, add rows and fill visit name */
   async addVisitRows(rowCount: string) {
     await this.manageVisitsLink.click();

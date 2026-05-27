@@ -150,12 +150,10 @@ This will install:
 ### Step 3: Install Playwright Browsers
 
 ```bash
-npx playwright install chromium
+npx init playwright@latest
 ```
 
-Or install all browsers:
-```bash
-npx playwright install
+
 ```
 
 ### Step 4: Configure Environment

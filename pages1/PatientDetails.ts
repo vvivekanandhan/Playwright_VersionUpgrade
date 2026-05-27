@@ -88,7 +88,7 @@ export class PatientDetails {
     await this.eSign.focus();
     await this.eSign.fill(eSignValue);
     await this.submitButton.click();
-        await popup.waitForLoadState();
+    await this.page.getByText('Data Saved Successfully').waitFor({ state: 'hidden', timeout: 15000 });
 
   }
 
@@ -97,6 +97,8 @@ export class PatientDetails {
    * @param patientCode - The patient code to search
    */
   async searchPatient(patientCode: string) {
+    await this.page.waitForLoadState('domcontentloaded');
+    await this.patientCode.waitFor({ state: 'visible', timeout: 15000 });
     await this.patientCode.fill(patientCode);
     await this.searchButton.click();
   }

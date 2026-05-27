@@ -56,7 +56,7 @@ static async checkIfAppears(locator: Locator, timeout = 3000): Promise<boolean> 
    */
   async fillESign(eSignValue?: string) {
     const value = eSignValue ?? process.env.ESIGN!;
-    const eSign = this.page.locator('#eSign').first();
+    const eSign = this.page.locator('#eSign, #eSigns').last();
     await eSign.click();
     await this.page.keyboard.type(value, { delay: 100 });
   }
@@ -77,10 +77,10 @@ static async checkIfAppears(locator: Locator, timeout = 3000): Promise<boolean> 
    * @param eSignValue - eSign value to enter (defaults to process.env.ESIGN)
    */
   async previewAndSave(eSignValue?: string) {
-    await this.page.getByRole('button', { name: 'Preview and Save' }).click();
+    await this.page.getByRole('button', { name: 'Preview and Save' }).last().click();
     const value = eSignValue ?? process.env.ESIGN!;
-    await this.page.locator('#eSign').click();
+    await this.page.locator('#eSign, #eSigns').last().click();
     await this.page.keyboard.type(value, { delay: 100 });
-    await this.page.getByRole('button', { name: 'Save', exact: true }).click();
+    await this.page.getByRole('button', { name: 'Save', exact: true }).last().click();
   }
 }

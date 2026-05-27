@@ -5,7 +5,9 @@ import { VelosCalendarPage } from '../pages1/VelosCalendarPage';
 import { VelosPortalPage } from '../pages1/VelosPortalPage';
 import { VelosFieldPage } from '../pages1/VelosFieldPage';
 import { VelosHelper } from '../helpers/VelosHelper';
+import { VelosFinancialPage } from '../pages1/VelosFinancialPage';
 import { type Page } from '@playwright/test';
+import { DBHelper } from '../helpers/DBHelper';
 import eventLibraryData from '../test-data/calendarLibEvents.json';
 
 let studyPage: StudyPage;
@@ -203,7 +205,7 @@ test('Add Event Category and Create Events', async () => {
   // Step 1: Add Event Category
   await sharedNav.navigateTo("Libraries", "Events", "Add Category");
   await sharedPage.waitForLoadState('domcontentloaded');
-  
+  await sharedPage.waitForTimeout(500); // Wait for page to stabilize
   // Select library type and fill category name
   await sharedPage.locator('select[name="cmbLibType"]').selectOption({ index: 1 });
   await sharedPage.locator('input[name="categoryName"]').fill(createdEventCategoryName);
@@ -294,7 +296,7 @@ test('Add Library Calendar', async ({ studyData, calendarData }) => {
   await sharedNav.navigateTo("Libraries", "Calendars", "Add Calendar");
   await calendarPage.fillDefineCalendar(calendarData);
   await calendarPage.selectEventsFromPopup(createdEventCategoryName);
-  await calendarPage.manageVisitsLink.click();
+  await calendarPage.clickManageVisitsAndRefresh();
   
   // Create Fixed Time Point visit
   await calendarPage.createFixedTimePointVisit(calendarData.fixedTimePointVisit);
@@ -341,4 +343,217 @@ test('Create Study and Add Status', async ({ studyData, calendarData, patientDat
   await studyPage.addEnrolledStatus();
   await studyPage.addPatientToStudy(studyPage.lastStudyNumber, createdPatientId);
   await studyPage.createPatientSchedule(createdCalendarName);
+});
+
+test('Create and Achieve Milestone Rules', async () => {
+  const financialPage = new VelosFinancialPage(sharedPage);
+
+  // ── Helper: dismiss inline editor by clicking neutral area ──
+  const dismissEditor = async () => {
+    await sharedPage.getByText(' Milestone Type:').first().click();
+  };
+
+  // ── Helper: enter row count and click add for a milestone type ──
+  const addMilestoneRow = async (prefix: 'PM' | 'VM' | 'EM' | 'SM' | 'AM') => {
+    await sharedPage.locator(`#${prefix}_rowCount`).click();
+    await sharedPage.waitForTimeout(2000);
+    await sharedPage.locator(`#${prefix}_rowCount`).pressSequentially('1', { delay: 1000 });
+    const plusIcon = {
+      PM: financialPage.addPM_MilestonePlusIcon,
+      VM: financialPage.addVM_MilestonePlusIcon,
+      EM: financialPage.addEM_MilestonePlusIcon,
+      SM: financialPage.addSM_MilestonePlusIcon,
+      AM: financialPage.addAM_MilestonePlusIcon,
+    };
+    await plusIcon[prefix].click();
+  };
+
+  // ── Helper: select dropdown and dismiss ──
+  const selectDropdown = async (label?: string, index?: number) => {
+    if (label) {
+      await financialPage.milestoneActiveDropdownEditor.selectOption({ label });
+    } else if (index !== undefined) {
+      await financialPage.milestoneActiveDropdownEditor.selectOption({ index });
+    }
+    await dismissEditor();
+    await sharedPage.waitForTimeout(1000);
+  };
+
+  // ── Helper: fill text field and dismiss ──
+  const fillText = async (value: string) => {
+    await financialPage.milestoneActiveTextEditor.fill(value);
+    await dismissEditor();
+    await sharedPage.waitForTimeout(500);
+  };
+
+  // ────────────────────────────────────────────────────────────────
+  // CREATE PATIENT STATUS MILESTONE (PM) — Status: Enrolled
+  // ────────────────────────────────────────────────────────────────
+  const createPatientStatusMilestone = async (patientStatus: string, amount: string) => {
+    await financialPage.expandMilestoneTypeByName('Patient Status Milestones').click();
+    await addMilestoneRow('PM');
+
+    await financialPage.clickPatientStatusField();
+    await selectDropdown(patientStatus);
+
+    await financialPage.clickMilestoneStatusField();
+    await selectDropdown('Active');
+
+    await financialPage.clickAmountField();
+    await fillText(amount);
+
+    await financialPage.milestonePreviewAndSave();
+    console.log(`Created PM milestone: patientStatus=${patientStatus}, amount=${amount}`);
+  };
+
+  // ────────────────────────────────────────────────────────────────
+  // CREATE STUDY STATUS MILESTONE (SM) — Same status as study
+  // ────────────────────────────────────────────────────────────────
+  const createStudyStatusMilestone = async (studyStatus: string, amount: string) => {
+    await financialPage.expandMilestoneTypeByName('Study Status Milestones').click();
+    await addMilestoneRow('SM');
+
+    await financialPage.clickSM_StdStatusField();
+    await selectDropdown(studyStatus);
+
+    await financialPage.clickSM_MilestoneStatusField();
+    await selectDropdown('Active');
+
+    await financialPage.clickSM_AmountField();
+    await fillText(amount);
+
+    await financialPage.milestonePreviewAndSave();
+    console.log(`Created SM milestone: studyStatus=${studyStatus}, amount=${amount}`);
+  };
+
+  // ────────────────────────────────────────────────────────────────
+  // CREATE VISIT MILESTONE (VM)
+  // ────────────────────────────────────────────────────────────────
+  const createVisitMilestone = async (calendarName: string, visitName: string, amount: string) => {
+    await financialPage.expandMilestoneTypeByName('Visit Milestones').click();
+    await addMilestoneRow('VM');
+
+    await financialPage.clickVM_CalendarField();
+    await selectDropdown(calendarName);
+
+    await financialPage.clickVM_VisitField();
+    await selectDropdown(visitName);
+
+    await financialPage.clickVM_MileRuleField();
+    await selectDropdown('All events within the visit are  marked as -');
+
+    await financialPage.clickVM_EvtStatusField();
+    await selectDropdown('Done');
+   await sharedPage.pause();
+    await financialPage.clickVM_MilestoneStatusField();
+    await selectDropdown('Active');
+
+    await financialPage.clickVM_AmountField();
+    await fillText(amount);
+
+    await financialPage.milestonePreviewAndSave();
+    console.log(`Created VM milestone: calendar=${calendarName}, visit=${visitName}, amount=${amount}`);
+  };
+
+  // ────────────────────────────────────────────────────────────────
+  // CREATE EVENT MILESTONE (EM)
+  // ────────────────────────────────────────────────────────────────
+  const createEventMilestone = async (calendarName: string, visitName: string, eventName: string, amount: string) => {
+    await financialPage.expandMilestoneTypeByName('Event Milestones').click();
+    await addMilestoneRow('EM');
+
+    await financialPage.clickEM_CalendarField();
+    await selectDropdown(calendarName);
+
+    await financialPage.clickEM_VisitField();
+    await selectDropdown(visitName);
+
+    await financialPage.clickEM_EventField();
+    await selectDropdown(eventName);
+
+    await financialPage.clickEM_MileRuleField();
+    await selectDropdown('Event Marked As');
+
+    await financialPage.clickEM_EvtStatusField();
+    await selectDropdown('Done');
+
+    await financialPage.clickEM_MilestoneStatusField();
+    await selectDropdown('Active');
+
+    await financialPage.clickEM_AmountField();
+    await fillText(amount);
+
+    await financialPage.milestonePreviewAndSave();
+    console.log(`Created EM milestone: calendar=${calendarName}, visit=${visitName}, event=${eventName}, amount=${amount}`);
+  };
+
+  // ────────────────────────────────────────────────────────────────
+  // CREATE ADDITIONAL MILESTONE (AM)
+  // ────────────────────────────────────────────────────────────────
+  const createAdditionalMilestone = async (description: string, amount: string) => {
+    await financialPage.expandMilestoneTypeByName('Additional Milestones').click();
+    await addMilestoneRow('AM');
+
+    await financialPage.clickAM_MileDescField();
+    await fillText(description);
+
+    await financialPage.clickAM_MilestoneStatusField();
+    await selectDropdown('Active');
+
+    await financialPage.clickAM_AmountField();
+    await fillText(amount);
+
+    await financialPage.milestonePreviewAndSave();
+    console.log(`Created AM milestone: desc=${description}, amount=${amount}`);
+  };
+
+  // ────────────────────────────────────────────────────────────────
+  // BUILD NAMES FROM CALENDAR LIBRARY DATA
+  // ────────────────────────────────────────────────────────────────
+  const calName = createdCalendarName;                                   // e.g. Pet Calendar_1716800000000
+  const firstVisitName = 'v1';                                           // First visit from calendarDetails.json
+  const firstEventName = eventLibraryData.events[0].eventName;           // "Blood Draw" (without timestamp suffix in dropdown)
+
+  await sharedPage.pause();
+
+  // Navigate to Milestones tab
+  await sharedPage.getByPlaceholder('Study #, Title or Keyword').first().fill(studyPage.lastStudyNumber!);
+  await sharedPage.keyboard.press('Enter');
+  await sharedPage.locator('.studyMenuPop').click();
+  await sharedPage.getByRole('link', { name: 'Financial Summary' }).click();
+  await sharedPage.waitForLoadState('domcontentloaded');
+  await financialPage.navigateToTab('Milestones');
+
+  // ── Create all 5 milestones ──
+  // Get study status label from DB (same status used when creating the study)
+  const db = new DBHelper();
+  let studyStatusLabel: string;
+  try {
+    studyStatusLabel = await db.getActiveEnrollingStudyStatusDesc();
+    console.log(`[DB] Study status label for milestone: ${studyStatusLabel}`);
+  } finally {
+    await db.close();
+  }
+
+  await createPatientStatusMilestone('Enrolled', '500');
+  await createStudyStatusMilestone(studyStatusLabel, '400');
+  await createVisitMilestone(calName, firstVisitName, '300');
+  await createEventMilestone(calName, firstVisitName, firstEventName, '200');
+  await createAdditionalMilestone('Additional Test Milestone', '100');
+
+  // ── Achieve Milestone ──
+  await sharedPage.getByRole('button', { name: 'Achieve Milestone' }).click();
+  await sharedPage.waitForLoadState('domcontentloaded');
+
+  // Select all rows and save achievements
+  const checkboxes = sharedPage.locator('input[type="checkbox"]');
+  const count = await checkboxes.count();
+  for (let i = 0; i < count; i++) {
+    await checkboxes.nth(i).check().catch(() => {});
+  }
+
+  await sharedNav.fillESignAndSubmit();
+  await sharedPage.waitForLoadState('domcontentloaded');
+
+  console.log('Milestone rules created and achieved successfully');
 });

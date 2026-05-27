@@ -132,6 +132,20 @@ export class DBHelper {
     return rows[0].CODELST_DESC;
   }
 
+  /**
+   * Get the codelst_desc (label) for the active enrolling study status.
+   * This returns the text shown in milestone dropdowns (e.g. 'Enrolled', 'Enrolling').
+   */
+  async getActiveEnrollingStudyStatusDesc(): Promise<string> {
+    const rows = await this.query<{ CODELST_DESC: string }>(
+      `SELECT codelst_desc FROM er_codelst WHERE codelst_subtyp = 'active' AND codelst_type = 'studystat'`
+    );
+    if (!rows.length) {
+      throw new Error('No active study status description found in er_codelst');
+    }
+    return rows[0].CODELST_DESC;
+  }
+
   /** Close the connection gracefully. Call this in `afterAll` / `afterEach`. */
   async close(): Promise<void> {
     if (this.connection) {
