@@ -6,7 +6,9 @@
   "author": "",
   "type": "commonjs",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "test:milestone": "npx playwright test --project=chromium --grep \"Create Study and Add Status|Create and Achieve Milestone Rules\""
+  },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
     "@types/node": "^25.5.2",

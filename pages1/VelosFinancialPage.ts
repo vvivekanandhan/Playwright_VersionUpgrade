@@ -1,4 +1,5 @@
 import { type Page, type Locator, expect } from '@playwright/test';
+import { VelosHelper } from '../helpers/VelosHelper';
 
 /**
  * VelosFinancialPage – Financials Browser, Milestones, Invoicing, Payments.
@@ -6,6 +7,7 @@ import { type Page, type Locator, expect } from '@playwright/test';
  */
 export class VelosFinancialPage {
   page: Page;
+  inv: string | null = null;
 
   /* ── Static Locators from Velos_FinancialsPage.java ── */
   readonly getInvoiceAmountHoldback: Locator;
@@ -34,7 +36,8 @@ export class VelosFinancialPage {
   readonly checkApplyAmountsHighlighted: Locator;
   readonly checkSelectInvoiceHighlighted: Locator;
   readonly checkDefaultSort: Locator;
-  readonly reconcileSelectAllRules: Locator;
+  readonly reconcileEMCheckbox: (milestoneText: string) => Locator;
+  readonly reconcileAllMileCheckbox: Locator;
   readonly Deletepayment: Locator;
   readonly Deleteinvoice: Locator;
   readonly DeleteSelectedRule: Locator;
@@ -56,6 +59,7 @@ export class VelosFinancialPage {
   readonly addEM_MilestonePlusIcon: Locator;
   readonly addSM_MilestonePlusIcon: Locator;
   readonly addAM_MilestonePlusIcon: Locator;
+  readonly amMilestoneDescEditor: Locator;
   readonly milestoneRequiredFieldDropdown: Locator;
   readonly inputValue: Locator;
   readonly verifyRuleExpanded: Locator;
@@ -99,6 +103,11 @@ export class VelosFinancialPage {
   readonly deleteAmount: Locator;
   readonly patientcount: Locator;
   readonly milestonePreviewAndSaveBtn: Locator;
+  readonly invoicingTabLink: Locator;
+  readonly createNewInvoiceLink: Locator;
+  readonly submitStepOneButton: Locator;
+  readonly calculateAllIcon: Locator;
+  readonly generateInvoiceButton: Locator;
 
   /* ── Milestone Grid Column Locators (PM = Patient Status, backward compat) ── */
   readonly serialNumberField: Locator;
@@ -144,7 +153,9 @@ export class VelosFinancialPage {
     this.checkApplyAmountsHighlighted = page.locator("//div[@class='col center circle second_select circle-active'] /following-sibling::div[contains(text(),'Apply Amounts')]").first();
     this.checkSelectInvoiceHighlighted = page.locator("//div[@class='col center circle circle-active first_select']/following-sibling::div//span[contains(text(),'Select Invoice')]").first();
     this.checkDefaultSort = page.locator("//th[contains(@class,'reportHeading sorting_asc') and contains(@aria-label,'Invoice Date')]").first();
-    this.reconcileSelectAllRules = page.locator("//div[@class='tablesorter-header-inner']//label[@class='valign-wrapper']").first();
+    this.reconcileEMCheckbox = (milestoneText: string) => page.getByRole('row', { name: new RegExp(milestoneText, 'i') }).locator('td .valign-wrapper span').first();
+    this.reconcileAllMileCheckbox = page.locator('.tablesorter-header-inner > .valign-wrapper > span').first();
+
     this.Deletepayment = page.locator("//i[normalize-space()='delete']").first();
     this.Deleteinvoice = page.locator("//input[@id='InvOpt0']").first();
     this.DeleteSelectedRule = page.locator("//div[@class='delete__milestone__wrapper valign-wrapper flex-align-helper-container']//button[@type='submit']").first();
@@ -166,6 +177,7 @@ export class VelosFinancialPage {
     this.addEM_MilestonePlusIcon = page.locator("//span[@onclick=\"VELOS.milestoneGrid.addRows('EM');\"]").first();
     this.addSM_MilestonePlusIcon = page.locator("//span[@onclick=\"VELOS.milestoneGrid.addRows('SM');\"]").first();
     this.addAM_MilestonePlusIcon = page.locator("//span[@onclick=\"VELOS.milestoneGrid.addRows('AM');\"]").first();
+    this.amMilestoneDescEditor = page.locator('.yui-dt-editor');
     this.milestoneRequiredFieldDropdown = page.locator("//div[@class='yui-dt-editor' and contains(@style,'left')]/select").first();
     this.inputValue = page.locator("//div[contains(@id,'textboxceditor') and contains(@style,'left')]//input").first();
     this.verifyRuleExpanded = page.locator("//div[contains(@class,'active')]//li[@class='active']").first();
@@ -209,6 +221,11 @@ export class VelosFinancialPage {
     this.deleteAmount = page.locator("//i[normalize-space()='delete']").first();
     this.patientcount = page.locator("//div[@id='yui-textboxceditor2-container']//input[@type='text']").first();
     this.milestonePreviewAndSaveBtn = page.getByRole('row', { name: 'Holdback % 0.00 Apply to All' }).locator('#save_changes').last();
+    this.invoicingTabLink = page.getByRole('link', { name: 'Invoicing' }).first();
+    this.createNewInvoiceLink = page.getByRole('link', { name: 'CREATE A NEW INVOICE' }).first();
+    this.submitStepOneButton = page.getByRole('button', { name: 'Submit' }).first();
+    this.calculateAllIcon = page.getByRole('img', { name: 'Calculate All' }).first();
+    this.generateInvoiceButton = page.getByRole('button', { name: 'Generate Invoice' }).first();
 
     /* ── Milestone Grid Column Locators – PM (Patient Status) backward compat ── */
     this.serialNumberField    = page.locator("#PM_milestonegrid_datatablejs tbody tr:first-child td[class*='yui-dt-col-recNum']").first();
@@ -608,8 +625,52 @@ export class VelosFinancialPage {
     await this.page.waitForLoadState('domcontentloaded');
   }
 
-  async createInvoice() {
+  async clickCreateInvoice() {
     await this.page.getByRole('link', { name: /create a new invoice/i }).first().click();
+  }
+
+  invoiceMilestoneTypeOption(milestoneType: string) {
+    return this.page.locator('div').filter({ hasText: `Milestone Type ${milestoneType}` }).first();
+  }
+
+  /**
+   * Opens Invoicing and creates an invoice from achieved milestones.
+   * Fills a unique invoice number (studyNumber-randomNumber) into #invNumber.
+   * Returns the generated invoice number.
+   */
+  async createInvoiceFromInvoicing( studyNumber: string = '', closeGeneratedInvoicePopup: boolean = true): Promise<string> {
+    const randomNum = Math.floor(1000 + Math.random() * 9000);
+    const randomChar = String.fromCharCode(97 + Math.floor(Math.random() * 26));
+    const invoiceNumber = `${randomNum}${randomChar}`;
+    if (!this.page.url().includes('invoicebrowser.jsp')) {
+      const helper = new VelosHelper(this.page);
+      await helper.navigateToFinancialTab(studyNumber);
+    }
+
+    await this.invoicingTabLink.click();
+    await this.clickCreateInvoice();
+    await this.page.locator('#invNumber').fill(invoiceNumber);
+    await this.submitStepOneButton.click();
+    await this.calculateAllIcon.click();
+
+    const popupPromise = this.page.waitForEvent('popup', { timeout: 5000 }).catch(() => null);
+    await this.generateInvoiceButton.click();
+    const popupPage = await popupPromise;
+
+    if (closeGeneratedInvoicePopup && popupPage) {
+      await popupPage.close().catch(() => {});
+    }
+
+    // The system generates the full invoice number as studyNumber-randomNumber
+    const fullInvoiceNumber = studyNumber ? `${studyNumber}-${invoiceNumber}` : invoiceNumber;
+
+    // Store invoice number for later use
+    this.inv = fullInvoiceNumber;
+
+    // Verify invoice number is displayed as a link
+    await expect(this.page.getByRole('link', { name: fullInvoiceNumber })).toBeVisible();
+
+    return fullInvoiceNumber;
   }
 
   async submitInvoice() {
@@ -696,6 +757,153 @@ export class VelosFinancialPage {
     await this.page.locator('#eSign, #eSigns').last().click();
     await this.page.keyboard.type(value, { delay: 100 });
     await this.page.getByRole('button', { name: 'Save', exact: true }).first().click();
+  }
+
+  private async dismissInlineMilestoneEditor() {
+    await this.page.getByText(' Milestone Type:').first().click();
+  }
+
+  private async addMilestoneRow(prefix: 'PM' | 'VM' | 'EM' | 'SM' | 'AM', count: number = 1) {
+    await this.page.locator(`#${prefix}_rowCount`).last().click();
+    await this.page.waitForTimeout(2000);
+    await this.page.locator(`#${prefix}_rowCount`).pressSequentially(String(count), { delay: 1000 });
+
+    const plusIcon = {
+      PM: this.addPM_MilestonePlusIcon,
+      VM: this.addVM_MilestonePlusIcon,
+      EM: this.addEM_MilestonePlusIcon,
+      SM: this.addSM_MilestonePlusIcon,
+      AM: this.addAM_MilestonePlusIcon,
+    };
+
+    await plusIcon[prefix].click();
+  }
+
+  private async selectActiveMilestoneDropdown(label?: string, index?: number) {
+    if (label) {
+      await this.milestoneActiveDropdownEditor.selectOption({ label });
+    } else if (index !== undefined) {
+      await this.milestoneActiveDropdownEditor.selectOption({ index });
+    }
+    await this.dismissInlineMilestoneEditor();
+    await this.page.waitForTimeout(1000);
+  }
+
+  private async fillActiveMilestoneText(value: string) {
+    await this.milestoneActiveTextEditor.fill(value);
+    await this.dismissInlineMilestoneEditor();
+    await this.page.waitForTimeout(500);
+  }
+
+  async createPatientStatusMilestone(patientStatus: string, amount: string) {
+    await this.expandMilestoneTypeByName('Patient Status Milestones').click();
+    await this.addMilestoneRow('PM');
+
+    await this.clickPatientStatusField();
+    await this.selectActiveMilestoneDropdown(patientStatus);
+
+    await this.clickMilestoneStatusField();
+    await this.selectActiveMilestoneDropdown('Active');
+
+    await this.clickAmountField();
+    await this.fillActiveMilestoneText(amount);
+
+    await this.milestonePreviewAndSave();
+    await this.page.reload({ waitUntil: 'domcontentloaded' });
+  }
+
+  async createStudyStatusMilestone(studyStatus: string, amount: string) {
+    await this.expandMilestoneTypeByName('Study Status Milestones').click();
+    await this.addMilestoneRow('SM');
+
+    await this.clickSM_StdStatusField();
+    await this.selectActiveMilestoneDropdown(studyStatus);
+
+    await this.clickSM_MilestoneStatusField();
+    await this.selectActiveMilestoneDropdown('Active');
+
+    await this.clickSM_AmountField();
+    await this.fillActiveMilestoneText(amount);
+
+    await this.milestonePreviewAndSave();
+    await this.page.reload({ waitUntil: 'domcontentloaded' });
+  }
+
+  async createVisitMilestone(calendarName: string, visitName: string, amount: string) {
+    await this.expandMilestoneTypeByName('Visit Milestones').click();
+    await this.addMilestoneRow('VM');
+
+    await this.clickVM_CalendarField();
+    await this.selectActiveMilestoneDropdown(calendarName);
+
+    await this.clickVM_VisitField();
+    await this.selectActiveMilestoneDropdown(visitName);
+
+    await this.clickVM_MileRuleField();
+    await this.selectActiveMilestoneDropdown('All events within the visit are  marked as -');
+
+    await this.clickVM_EvtStatusField();
+    await this.selectActiveMilestoneDropdown('Done');
+
+    await this.clickVM_MilestoneStatusField();
+    await this.selectActiveMilestoneDropdown('Active');
+
+    await this.clickVM_AmountField();
+    await this.fillActiveMilestoneText(amount);
+
+    await this.milestonePreviewAndSave();
+    await this.page.reload({ waitUntil: 'domcontentloaded' });
+  }
+
+  async createEventMilestone(calendarName: string, visitName: string, eventName: string, amount: string, eventIndex?: number) {
+    await this.expandMilestoneTypeByName('Event Milestones').click();
+    await this.addMilestoneRow('EM');
+
+    await this.clickEM_CalendarField();
+    await this.selectActiveMilestoneDropdown(calendarName);
+
+    await this.clickEM_VisitField();
+    await this.selectActiveMilestoneDropdown(visitName);
+
+    await this.clickEM_EventField();
+    if (eventIndex !== undefined) {
+      await this.selectActiveMilestoneDropdown(undefined, eventIndex);
+    } else {
+      await this.selectActiveMilestoneDropdown(eventName);
+    }
+
+    await this.clickEM_MileRuleField();
+    await this.selectActiveMilestoneDropdown('Event is marked as -');
+
+    await this.clickEM_EvtStatusField();
+    await this.selectActiveMilestoneDropdown('Done');
+
+    await this.clickEM_MilestoneStatusField();
+    await this.selectActiveMilestoneDropdown('Active');
+
+    await this.clickEM_AmountField();
+    await this.fillActiveMilestoneText(amount);
+
+    await this.milestonePreviewAndSave();
+    await this.page.reload({ waitUntil: 'domcontentloaded' });
+
+  }
+
+  async createAdditionalMilestone(description: string, amount: string) {
+    await this.expandMilestoneTypeByName('Additional Milestones').click();
+    await this.addMilestoneRow('AM');
+
+    await this.clickAM_MileDescField();
+    await this.amMilestoneDescEditor.fill(description);
+
+    await this.clickAM_MilestoneStatusField();
+    await this.selectActiveMilestoneDropdown('Active');
+
+    await this.clickAM_AmountField();
+    await this.fillActiveMilestoneText(amount);
+
+    await this.milestonePreviewAndSave();
+    await this.page.reload({ waitUntil: 'domcontentloaded' });
   }
 
   /* ── Patient Status Milestone Grid – Click Methods ── */
@@ -811,4 +1019,124 @@ export class VelosFinancialPage {
   async clickAM_HoldbackField()       { await this.am_holdBack.click(); }
   async clickAM_PaymentForField()     { await this.am_payFor.click(); }
   async clickAM_MilestoneStatusField(){ await this.am_mileStatus.click(); }
+
+  /**
+   * Create a new payment on the Payments tab.
+   * @param amount - Payment amount (e.g. '500')
+   * @param description - Unique payment description
+   * @param paymentType - Payment type label to select in dpayCode dropdown (defaults to first option)
+   * @param paymentDate - Payment date in MM/DD/YYYY format (defaults to today)
+   */
+  async createPayment(amount: string, description: string, paymentType?: string, paymentDate?: string) {
+    const today = paymentDate ?? new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+
+    // Navigate to Payments tab
+    await this.page.getByRole('link', { name: 'Payments' }).click();
+    await this.page.waitForLoadState('domcontentloaded');
+
+    // Click Add New
+    await this.page.getByRole('link', { name: 'add_circle_outline Add New' }).click();
+    await this.page.waitForLoadState('domcontentloaded');
+
+    // Fill payment form
+    await this.page.getByRole('textbox', { name: 'Enter payment amount' }).fill(amount);
+    if (paymentType) {
+      const matchingOption = this.page.locator('#dpayCode option', { hasText: paymentType }).first();
+      const value = await matchingOption.getAttribute('value');
+      await this.page.locator('#dpayCode').selectOption(value!);
+    } else {
+      await this.page.locator('#dpayCode').selectOption({ index: 1 });
+    }
+    await this.page.getByRole('textbox', { name: 'Enter a description for this' }).fill(description);
+    await this.page.locator('input[name="date"]').fill(today);
+
+    // Submit payment
+    await this.page.getByRole('link', { name: 'Add New Payment' }).click();
+    await this.page.waitForLoadState('domcontentloaded');
+    await this.page.waitForTimeout(1000);
+  }
+
+  /**
+   * Reconcile an existing payment against a specific invoice.
+   * @param description - Payment description to identify the row
+   * @param invoiceNumber - Invoice number to reconcile against
+   */
+  async reconcilePaymentByInvoice(description: string, invoiceNumber?: string) {
+    const resolvedInvoice = invoiceNumber ?? this.inv;
+    if (!resolvedInvoice) throw new Error('No invoice number provided and none stored from createInvoiceFromInvoicing');
+
+    // Click Reconcile for the payment matching the description
+    const paymentRow = this.page.locator('tr').filter({ hasText: description }).last();
+    await paymentRow.getByRole('link', { name: 'Reconcile', exact: true }).click();
+    await this.page.waitForLoadState('domcontentloaded');
+
+    // Select Invoices
+    await this.page.getByRole('img', { name: 'Select Invoices' }).click();
+    await this.page.waitForLoadState('domcontentloaded');
+
+    // Select the specific invoice by invoice number
+    const invoiceCheckbox = this.page.locator(`//td[contains(text(),'${resolvedInvoice}')]/preceding-sibling::td//span`).first();
+    await invoiceCheckbox.click();
+
+    // Next: Apply Amounts
+    await this.page.getByRole('link', { name: 'Next: Apply Amounts' }).click();
+    await this.page.waitForLoadState('domcontentloaded');
+
+    // Pay in full
+    await this.page.getByRole('link', { name: 'check_circle Pay total in full' }).click();
+// Fill Security PIN (eSign)
+    const eSignValue = process.env.ESIGN ?? '1111';
+    const pinField = this.page.locator('#eSign');
+        await pinField.click();
+    await pinField.fill(eSignValue);
+
+    // Apply amounts from payment
+    await this.page.getByRole('link', { name: 'Apply amounts from payment' }).click();
+    await this.page.waitForLoadState('domcontentloaded');
+    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForTimeout(1000);
+  }
+
+  /**
+   * Reconcile an existing payment by milestone type.
+   * @param description - Payment description to identify the row
+   * @param milestoneType - Milestone type to reconcile against
+   */
+  async reconcilePaymentByMilestone(description: string, milestoneType: string) {
+    // Click Reconcile for the payment matching the description
+    const paymentRow = this.page.locator('tr').filter({ hasText: description }).last();
+    await paymentRow.getByRole('link', { name: 'Reconcile', exact: true }).click();
+    await this.page.waitForLoadState('domcontentloaded');
+
+    // Select milestones
+    if (milestoneType.toLowerCase() === 'all') {
+      await this.reconcileAllMileCheckbox.click({ force: true });
+    } else {
+      await this.page.getByPlaceholder(' ', { exact: true }).nth(4).click();
+      await this.page.getByRole('listbox').getByText(new RegExp(milestoneType, 'i')).first().click();
+      await this.reconcileEMCheckbox(milestoneType).click();
+    }
+
+    // Next: Apply Amounts
+    await this.page.getByRole('link', { name: 'Next: Apply Amounts' }).last().click();
+    await this.page.waitForLoadState('domcontentloaded');
+
+    // Pay in full – click all links when selecting all milestones
+    const payInFullLinks = this.page.getByRole('link', { name: 'check_circle Pay total in full' });
+    const count = await payInFullLinks.count();
+    for (let i = 0; i < count; i++) {
+      await payInFullLinks.nth(i).click();
+    }
+
+    // Fill Security PIN (eSign)
+    const eSignValue = process.env.ESIGN ?? '1111';
+    const pinField = this.page.locator('#eSign');
+    await pinField.click();
+    await pinField.fill(eSignValue);
+
+    // Final apply
+    await this.page.getByRole('link', { name: 'Apply amounts from payment' }).click();
+    await this.page.waitForLoadState('domcontentloaded');
+    await this.page.waitForLoadState('networkidle');
+  }
 }

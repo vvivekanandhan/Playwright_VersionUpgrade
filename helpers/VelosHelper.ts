@@ -69,6 +69,20 @@ static async checkIfAppears(locator: Locator, timeout = 3000): Promise<boolean> 
   async fillESignAndSubmit(eSignValue?: string) {
     await this.fillESign(eSignValue);
     await this.page.getByRole('button', { name: 'Submit' }).first().click();
+    await this.page.waitForLoadState('domcontentloaded');
+    await this.page.waitForLoadState('networkidle');
+  }
+
+  /**
+   * Fill the eSign field and click Save.
+   * Uses process.env.ESIGN if no value is provided.
+   * @param eSignValue - eSign value to enter (defaults to process.env.ESIGN)
+   */
+  async fillESignAndSave(eSignValue?: string) {
+    await this.fillESign(eSignValue);
+    await this.page.getByRole('button', { name: 'Save', exact: true }).first().click();
+    await this.page.waitForLoadState('domcontentloaded');
+    await this.page.waitForLoadState('networkidle');
   }
 
   /**
@@ -82,5 +96,43 @@ static async checkIfAppears(locator: Locator, timeout = 3000): Promise<boolean> 
     await this.page.locator('#eSign, #eSigns').last().click();
     await this.page.keyboard.type(value, { delay: 100 });
     await this.page.getByRole('button', { name: 'Save', exact: true }).last().click();
+    await this.page.waitForLoadState('domcontentloaded');
+    await this.page.waitForLoadState('networkidle');
+  }
+
+  /**
+   * Navigate to a study's Financial Summary and optionally open a specific tab.
+   * @param studyNumber - Study number to search for
+   * @param tab - Optional tab name to navigate to (e.g., 'Milestones', 'Invoicing', 'Payments')
+   */
+  async navigateToFinancialTab(studyNumber: string, tab?: string) {
+    await this.page.getByPlaceholder('Study #, Title or Keyword').first().click();
+    console.log(`[navigateToFinancialTab] Searching for study number: ${studyNumber}`);
+    await this.page.getByPlaceholder('Study #, Title or Keyword').first().fill(studyNumber);
+    await this.page.keyboard.press('Enter');
+    await this.page.locator('.studyMenuPop').click();
+    await this.page.getByRole('link', { name: 'Financial Summary' }).click();
+    await this.page.waitForLoadState('domcontentloaded');
+    if (tab && tab !== 'Milestones') {
+      await this.page.getByRole('link', { name: tab, exact: false }).click();
+      await this.page.waitForLoadState('domcontentloaded');
+    }
+  }
+
+  /**
+   * Navigate to a patient's page within a study.
+   * Searches for the study, clicks Patient Management - Enrolled, then clicks the patient link.
+   * @param studyNumber - Study number to search for
+   * @param patientId - Patient ID link to click
+   */
+  async navigateToStudyPatient(studyNumber: string, patientId: string) {
+    await this.page.getByPlaceholder('Study #, Title or Keyword').first().fill(studyNumber);
+    await this.page.keyboard.press('Enter');
+
+    await this.page.getByRole('link', { name: 'Patient Management - Enrolled' }).click();
+    await this.page.waitForLoadState('domcontentloaded');
+
+    await this.page.getByRole('link', { name: patientId }).click();
+    await this.page.waitForLoadState('domcontentloaded');
   }
 }

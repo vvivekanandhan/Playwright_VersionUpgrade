@@ -187,15 +187,16 @@ export class VelosCalendarPage {
     const popup = await page1Promise;
     
     // Select event category - use label if provided, otherwise use index 1
-    if (eventCategoryName) {
+   
 await popup.locator('select[name="cmbLibType"]').selectOption({ index: 0});
+await popup.waitForTimeout(500)
   await popup.locator('select[name="catId"]').selectOption({ label: eventCategoryName });
-      } else {
-      await popup.locator('select[name="cmbLibType"]').selectOption({ index: 1 });
-    }
+  await popup.waitForTimeout(500); // Wait for category dropdown to populate
+      
     
     await popup.getByRole('button', { name: 'Search' }).first().click();
     await popup.waitForLoadState('domcontentloaded');
+    await popup.waitForLoadState('networkidle');
     await popup.getByRole('checkbox').first().check();
     await this.popupSelectLink(popup).click();
     const nav = new VelosHelper(popup);

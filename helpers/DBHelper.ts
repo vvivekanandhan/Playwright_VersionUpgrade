@@ -146,6 +146,52 @@ export class DBHelper {
     return rows[0].CODELST_DESC;
   }
 
+  /**
+   * Convenience: open connection, fetch the active enrolling study status label, and close.
+   */
+  static async fetchStudyStatusLabel(): Promise<string> {
+    const db = new DBHelper();
+    try {
+      return await db.getActiveEnrollingStudyStatusDesc();
+    } finally {
+      await db.close();
+    }
+  }
+
+  /**
+   * Convenience: open connection, fetch the enrolled patient status label, and close.
+   */
+  static async fetchEnrolledPatientStatus(): Promise<string> {
+    const db = new DBHelper();
+    try {
+      return await db.getEnrolledPatientStatus();
+    } finally {
+      await db.close();
+    }
+  }
+
+  /**
+   * Fetch both study status label and enrolled patient status in a single connection.
+   * Returns { studyStatusLabel, patientStatusLabel }.
+   */
+  static async fetchStatusLabels(): Promise<{ studyStatusLabel: string; patientStatusLabel: string }> {
+    try {
+      const db = new DBHelper();
+      try {
+        const [studyStatusLabel, patientStatusLabel] = await Promise.all([
+          db.getActiveEnrollingStudyStatusDesc(),
+          db.getEnrolledPatientStatus(),
+        ]);
+        return { studyStatusLabel, patientStatusLabel };
+      } finally {
+        await db.close();
+      }
+    } catch (error) {
+      console.warn(`[DBHelper] DB connection failed, using defaults. Error: ${error}`);
+      return { studyStatusLabel: 'Active/Enrolling', patientStatusLabel: 'Enrolled' };
+    }
+  }
+
   /** Close the connection gracefully. Call this in `afterAll` / `afterEach`. */
   async close(): Promise<void> {
     if (this.connection) {

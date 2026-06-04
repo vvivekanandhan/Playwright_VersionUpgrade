@@ -150,7 +150,7 @@ This will install:
 ### Step 3: Install Playwright Browsers
 
 ```bash
-npx init playwright@latest
+npm install playwright@latest
 ```
 
 

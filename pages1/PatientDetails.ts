@@ -63,6 +63,9 @@ export class PatientDetails {
    * @param eSignValue - E-signature value (default: '1111')
    */
   async createPatient(patientId: string, eSignValue: string = process.env.ESIGN || '1234') {
+     const helper = new VelosHelper(this.page);
+     await helper.navigateTo("Manage", "Patients", "New");
+
     await this.patientId.fill(patientId);
     await this.patientFirstName.fill(PatientDetails.generateUniqueFirstName());
     await this.patientLastName.fill(PatientDetails.generateUniqueLastName());
@@ -108,6 +111,9 @@ export class PatientDetails {
    * @param patientId - The patient ID to verify
    */
   async verifyPatientVisible(patientId: string) {
+    const helper = new VelosHelper(this.page);
+    await helper.navigateTo("Manage", "Patients", "Search");
+    await this.searchPatient(patientId);
     await expect(this.page.getByRole('link', { name: patientId })).toBeVisible();
   }
 }
