@@ -1,4 +1,5 @@
 import { type Page, type Locator, expect } from '@playwright/test';
+import { VelosHelper } from '../helpers/VelosHelper';
 
 export class Velos_BudgetPage {
   page: Page;
@@ -1568,5 +1569,44 @@ export class Velos_BudgetPage {
     await cells.nth(4).locator('input').fill(opts.unitCost);
     await cells.nth(5).locator('input').fill(opts.ofUnits);
     await cells.nth(9).locator('input').fill(opts.sponsorDirectAmount);
+  }
+
+  /**
+   * Create a new budget, link it to a study, and select a calendar from the study popup.
+   * @param budgetName - Name for the new budget
+   * @param budgetTemplate - Budget template option value (e.g. '253:P')
+   * @param studyOptionValue - Study dropdown option value (e.g. '12104')
+   * @param calendarName - Calendar name to select from the popup
+   */
+  async createBudgetWithCalendar(budgetName: string, budgetTemplate: string, studyOptionValue: string, calendarName: string) {
+    const helper = new VelosHelper(this.page);
+
+    // Navigate to Manage → Budgets → New
+    await helper.navigateTo('Manage', 'Budget', 'New');
+    await this.page.waitForLoadState('domcontentloaded');
+
+    // Fill budget name
+    await this.page.locator('input[name="budgetName"]').click();
+    await this.page.locator('input[name="budgetName"]').fill(budgetName);
+
+    // Select budget template by label and study by label
+    await this.page.locator('select[name="budgetTemplate"]').selectOption({ label: budgetTemplate });
+    await this.page.locator('select[name="budgetStudyId"]').selectOption({ label: studyOptionValue });
+
+    // Fill eSign and submit
+    await helper.fillESignAndSubmit();
+
+    // Select calendar from study (opens popup)
+    const popupPromise = this.page.waitForEvent('popup');
+    await this.page.getByRole('link', { name: 'Select Calendar from Study' }).click();
+    const popup = await popupPromise;
+    await popup.waitForLoadState('domcontentloaded');
+
+    // Check the calendar row checkbox
+    await popup.getByRole('row', { name: new RegExp(calendarName, 'i') }).getByRole('checkbox').check();
+
+    // Fill eSign and submit on popup
+    const popupHelper = new VelosHelper(popup);
+    await popupHelper.fillESignAndSubmit();
   }
 }

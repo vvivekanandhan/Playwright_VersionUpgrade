@@ -21,8 +21,6 @@ export class TestState {
     patientId: 'LAST_CREATED_PATIENT_ID',
     studyNumber: 'LAST_CREATED_STUDY_NUMBER',
     invoiceNumber: 'LAST_CREATED_INVOICE_NUMBER',
-    studyStatusLabel: 'STUDY_STATUS_LABEL',
-    patientStatusLabel: 'PATIENT_STATUS_LABEL',
   };
 
   constructor() {
@@ -77,6 +75,4 @@ export class TestState {
   patientId!: string;
   studyNumber!: string;
   invoiceNumber!: string;
-  studyStatusLabel!: string;
-  patientStatusLabel!: string;
 }

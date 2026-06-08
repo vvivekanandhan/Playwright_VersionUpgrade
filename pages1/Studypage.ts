@@ -349,4 +349,70 @@ await this.page.getByRole('link', { name: calendarName }).click();
     const popupHelper = new VelosHelper(popup);
     await popupHelper.fillESignAndSubmit();
   }
+
+  /**
+   * Navigate to Budget tab and create a combined budget by selecting all calendars,
+   * setting calendar status to Active, choosing a budget template, and submitting.
+   * @param budgetTemplate - Budget template option value (default: '273:C')
+   */
+  async createCombinedBudget(budgetTemplate: string = '273:C') {
+    // Navigate to Budget tab
+    await this.page.getByRole('link', { name: 'Budget' }).last().click();
+    await this.page.waitForLoadState('domcontentloaded');
+
+    // Select all calendars
+    await this.page.locator('#bgtAllCal').check();
+
+    // Set calendar status to Active
+    await this.page.locator('#calstatus').selectOption('A');
+
+    // Select budget template
+    await this.page.locator('select[name="budgetTemplate"]').selectOption(budgetTemplate);
+
+    // Fill eSign and submit
+    await this.helper.fillESignAndSubmit();
+  }
+
+  /**
+   * Add a user as a study team member.
+   * Navigates to Study Team tab, clicks ADD/EDIT, searches for the user, selects them, assigns a role, and submits.
+   * @param userName - User's last name or display name to search for
+   * @param role - Role to assign (e.g. 'Finance', 'PI', 'Coordinator')
+   * @param organization - Organization to filter by (optional)
+   * @param studyNumber - Study number to open (optional, defaults to lastStudyNumber)
+   */
+  async addStudyTeamMember(userName: string, role: string, organization?: string, studyNumber?: string) {
+    const study = studyNumber ?? this.lastStudyNumber;
+    // Navigate to Study Team tab, opening the study first if needed
+    if (!this.page.url().includes('teamBrowser.jsp')) {
+      await this.helper.searchAndOpenStudy(study);
+    }
+    await this.page.getByRole('link', { name: 'Study Team' }).click();
+    await this.page.waitForLoadState('domcontentloaded');
+
+    // Click ADD/EDIT STUDY TEAM MEMBER
+    await this.page.getByRole('link', { name: 'ADD/EDIT STUDY TEAM MEMBER' }).click();
+    await this.page.waitForLoadState('domcontentloaded');
+
+    // Optionally filter by organization
+    if (organization) {
+      await this.page.locator('select[name="orgName"]').selectOption({ label: organization });
+    }
+
+    // Search for the user
+    await this.page.getByRole('button', { name: 'Search' }).click();
+    await this.page.waitForLoadState('domcontentloaded');
+
+    // Select the user checkbox
+    const userRow = this.page.locator('tr').filter({ hasText: userName });
+    await userRow.getByRole('checkbox').first().check();
+
+    // Select role from dropdown
+    const roleDropdown = this.page.locator('#role').first();
+    await roleDropdown.selectOption({ label: 'Finance' });
+
+    // Submit
+    await this.page.getByRole('button', { name: 'Submit' }).click();
+    await this.page.waitForLoadState('domcontentloaded');
+  }
 }

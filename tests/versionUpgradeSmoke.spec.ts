@@ -6,6 +6,7 @@ import { VelosPortalPage } from '../pages1/VelosPortalPage';
 import { VelosFieldPage } from '../pages1/VelosFieldPage';
 import { VelosHelper } from '../helpers/VelosHelper';
 import { VelosFinancialPage } from '../pages1/VelosFinancialPage';
+import { Velos_BudgetPage } from '../pages1/Velos_BudgetPage';
 import { type Page } from '@playwright/test';
 import { DBHelper } from '../helpers/DBHelper';
 import { TestState } from '../helpers/TestState';
@@ -329,12 +330,16 @@ test('Create Patient and Verify', async ({ patientData }) => {
 /** Create a study, import and activate calendar, add enrolled status, add patient, create schedule, and mark all visits as done */
 test('Create Study and Add Status', async ({ studyData, calendarData, patientData }) => {
   studyPage = new StudyPage(sharedPage);
-  
-  await studyPage.createStudy(studyData);
-  state.studyNumber = studyPage.lastStudyNumber;
-  await studyPage.importCalendarFromLibraryAndActivateCalendar(state.calendarName);
-  await studyPage.importCalendarandVerifyImport('calendar_template (8).csv');
-  await studyPage.addEnrolledStatus();
+  await sharedPage.pause(); // Pause to ensure previous test's patient creation is fully complete before starting study creation
+//  await studyPage.createStudy(studyData);
+//   state.studyNumber = studyPage.lastStudyNumber;
+//   await sharedNav.searchAndOpenStudy(state.studyNumber);
+//   await studyPage.importCalendarFromLibraryAndActivateCalendar(state.calendarName);
+//   await studyPage.createCombinedBudget();
+//   await studyPage.importCalendarandVerifyImport('calendar_template (8).csv');
+//   await studyPage.addEnrolledStatus();
+  await studyPage.addStudyTeamMember('Velos Admin', 'Data Manager', undefined, state.studyNumber);
+
   await studyPage.addPatientToStudy(state.studyNumber, state.patientId);
   await studyPage.createPatientSchedule(state.calendarName);
   await studyPage.markAllVisitsAsDone(state.studyNumber, state.patientId);
@@ -357,8 +362,8 @@ test('Create and Achieve Milestone Rules', async () => {
   await sharedNav.navigateToFinancialTab(resolvedStudyNumber, 'Milestones');
 
   // // ── Create all 5 milestones ──
-  const studyStatusLabel = state.studyStatusLabel;
-  const patientStatusLabel = state.patientStatusLabel;
+  const studyStatusLabel = 'Active/Enrolling';
+  const patientStatusLabel = 'Enrolled';
   console.log(`[Milestone] Using study status: ${studyStatusLabel}, patient status: ${patientStatusLabel}`);
 
   await financialPage.createPatientStatusMilestone(patientStatusLabel, '500');
@@ -398,13 +403,30 @@ test('Create Payment and Reconcile', async () => {
   const invoiceNumber = state.invoiceNumber;
   const paymentDescription = `Payment_${Date.now()}`;
 
-  // Navigate to study Financial Summary
+  // Navigate to study Financial Summary - Payments tab
   await sharedNav.navigateToFinancialTab(resolvedStudyNumber, 'Payments');
-  // Create payment and reconcile against invoice
   await sharedPage.pause(); // Wait for payments page to stabilize
+
+  // Create first payment (Received) and reconcile against invoice
   await financialPage.createPayment('500', "payment1a","Received");
   await financialPage.reconcilePaymentByInvoice("payment1a", invoiceNumber);
-await financialPage.createPayment('500', "payment2","Made");
+
+  // Create second payment (Made) and reconcile against all milestone types
+  await financialPage.createPayment('500', "payment2","Made");
   await financialPage.reconcilePaymentByMilestone("payment2", "All");
 
+});
+
+/** Create a new budget, link it to a study, and select a calendar from the study */
+test('Create Budget with Calendar', async () => {
+  const budgetPage = new Velos_BudgetPage(sharedPage);
+  const budgetName = `Budget_${Date.now()}`;
+  const budgetTemplate = "Comparative Budget"
+  const studyOptionValue =state.studyNumber
+  const calendarName = state.calendarName;
+
+  // Navigate to Manage → Budgets → New, fill details, and link calendar
+  await budgetPage.createBudgetWithCalendar(budgetName, budgetTemplate, studyOptionValue, calendarName);
+
+  console.log(`Budget created: ${budgetName} with calendar: ${calendarName}`);
 });

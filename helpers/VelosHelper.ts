@@ -107,7 +107,6 @@ static async checkIfAppears(locator: Locator, timeout = 3000): Promise<boolean> 
    */
   async navigateToFinancialTab(studyNumber: string, tab?: string) {
     await this.page.getByPlaceholder('Study #, Title or Keyword').first().click();
-    console.log(`[navigateToFinancialTab] Searching for study number: ${studyNumber}`);
     await this.page.getByPlaceholder('Study #, Title or Keyword').first().fill(studyNumber);
     await this.page.keyboard.press('Enter');
     await this.page.locator('.studyMenuPop').click();
@@ -126,6 +125,7 @@ static async checkIfAppears(locator: Locator, timeout = 3000): Promise<boolean> 
    * @param patientId - Patient ID link to click
    */
   async navigateToStudyPatient(studyNumber: string, patientId: string) {
+    await this.page.getByPlaceholder('Study #, Title or Keyword').first().click();
     await this.page.getByPlaceholder('Study #, Title or Keyword').first().fill(studyNumber);
     await this.page.keyboard.press('Enter');
 
@@ -133,6 +133,18 @@ static async checkIfAppears(locator: Locator, timeout = 3000): Promise<boolean> 
     await this.page.waitForLoadState('domcontentloaded');
 
     await this.page.getByRole('link', { name: patientId }).click();
+    await this.page.waitForLoadState('domcontentloaded');
+  }
+
+  /**
+   * Search for a study by number and open it.
+   * @param studyNumber - Study number to search for
+   */
+  async searchAndOpenStudy(studyNumber: string) {
+    await this.page.getByPlaceholder('Study #, Title or Keyword').first().click();
+    await this.page.getByPlaceholder('Study #, Title or Keyword').first().fill(studyNumber);
+    await this.page.keyboard.press('Enter');
+    await this.page.locator('.studyMenuPop').click();
     await this.page.waitForLoadState('domcontentloaded');
   }
 }
